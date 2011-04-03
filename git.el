@@ -1,6 +1,7 @@
 ;;; git.el --- A user interface for git
 
 ;; Copyright (C) 2005, 2006, 2007, 2008, 2009 Alexandre Julliard <julliard@winehq.org>
+;; Copyright (C) 2010 Jari Aalto <jari.aalto@cante.net>
 
 ;; Version: 1.0
 
@@ -33,11 +34,14 @@
 ;;
 ;; To start: `M-x git-status'
 ;;
+;; RUDIMENTARY
+;; - fetch/pull. Be sure to start gpg-agent, ssh-agent prior emacs
+;;   to access ssh Git remotes.
+;;
 ;; TODO
 ;;  - diff against other branch
 ;;  - renaming files from the status buffer
 ;;  - creating tags
-;;  - fetch/pull
 ;;  - revlist browser
 ;;  - git-show-branch browser
 ;;
@@ -383,6 +387,25 @@ the process output as a string, or nil if the git command failed."
   "Parse a revision name and return its SHA1."
   (git-get-string-sha1
    (git-call-process-string "rev-parse" rev)))
+
+(defun git-root ()
+  "Return root of git directory. Start from current dir way up."
+  (let* ((dir (file-name-as-directory default-directory))
+	 (try (format "%s%s" dir ".git")))
+    (while (and dir
+		(not (file-directory-p try)))
+      (if (string-match "^\\(.*/\\).+$" dir)
+	  (setq dir (match-string 1 dir)
+		try (format "%s%s" dir ".git"))
+	(setq dir nil
+	      try nil)))
+    try))
+
+(defsubst git-config-file ()
+  "Return 'config' file location."
+  (let ((dir (git-root)))
+    (if dir
+	(format "%s/config" dir))))
 
 (defun git-config (key)
   "Retrieve the value associated to KEY in the git repository config file."
@@ -1527,6 +1550,7 @@ amended version of it."
 
 (unless git-status-mode-map
   (let ((map (make-keymap))
+        (remote-map (make-sparse-keymap))
         (commit-map (make-sparse-keymap))
         (diff-map (make-sparse-keymap))
         (toggle-map (make-sparse-keymap)))
@@ -1554,6 +1578,7 @@ amended version of it."
     (define-key map "P"   'git-prev-unmerged-file)
     (define-key map "q"   'git-status-quit)
     (define-key map "r"   'git-remove-file)
+    (define-key map "R"   remote-map)
     (define-key map "t"    toggle-map)
     (define-key map "T"   'git-toggle-all-marks)
     (define-key map "u"   'git-unmark-file)
@@ -1562,6 +1587,11 @@ amended version of it."
     (define-key map "x"   'git-remove-handled)
     (define-key map "\C-?" 'git-unmark-file-up)
     (define-key map "\M-\C-?" 'git-unmark-all)
+    ; remotes
+    (define-key remote-map "R" 'git-pull)  ; retrieve "RR"
+    (define-key remote-map "r" 'git-pull)  ; retrieve "Rr" (synonym)
+    (define-key remote-map "p" 'git-push)
+    (define-key remote-map "f" 'git-fetch)
     ; the commit submap
     (define-key commit-map "\C-a" 'git-amend-commit)
     (define-key commit-map "\C-b" 'git-branch)
@@ -1613,6 +1643,10 @@ amended version of it."
       ["Diff File" git-diff-file t]
       ["Interactive Diff File" git-diff-file-idiff t]
       ["Log" git-log-file t]
+      "--------"
+      ["Push" git-push t]
+      ["Pull" git-pull t]
+      ["Fetch" git-fetch t]
       "--------"
       ["Mark" git-mark-file t]
       ["Mark All" git-mark-all t]
@@ -1695,6 +1729,80 @@ Meant to be used in `after-save-hook'."
           (unless (string-match "^\\.git/" filename)
             (git-call-process nil "add" "--refresh" "--" filename)
             (git-update-status-files (list filename))))))))
+
+(defun git-remote-parse ()
+  "Parse remotes from current point forward. Return list."
+  (let (list)
+    ;; [remote "origin"]
+    (while (re-search-forward "^\\[remote[[:space:]]+\"\\([^\"]+\\)" nil t)
+      (push (match-string-no-properties 1) list))
+    list))
+
+(defun git-remote-list ()
+  "Return list of remotes from Git configuration."
+  (with-temp-buffer
+    (insert-file-contents-literally (git-config-file))
+    (goto-char (point-min))
+    (git-remote-parse)))
+
+(defun git-ask-remote (prompt)
+  "Read remote with PROMPT."
+  (let ((list (git-remote-list))
+	(default "origin")
+	ret)
+    (unless (member default list)
+      (setq default (car list)))
+    (setq ret
+	  (completing-read prompt
+			   list
+			   (not 'predicate)
+			   'require-match
+			   (not 'default)
+			   (not 'history)
+			   default))
+    (if (string-match "^[ \t\r\n]*$" ret)
+	(setq ret default))
+    ret))
+
+(defun git-push (&optional remote)
+  "Pull to REMOTE. Use \\[current-prefix-arg] to interactively set REMOTE."
+  (interactive
+   (list (or (and current-prefix-arg
+		  (git-ask-remote "Push to remote: "))
+	     "origin")))
+  ;; FIXME: could collect some status data for display
+  (when (git-call-process-display-error "push" remote)
+    (message "Pushed to remote: %s" remote)))
+
+(defun git-fetch (&optional remote)
+  "Fetch from REMOTE. Use \\[current-prefix-arg] to interactively set REMOTE."
+  (interactive
+   (list (or (and current-prefix-arg
+		  (git-ask-remote "Fetch from remote: "))
+	     "origin")))
+  ;; FIXME: could collect some status data for display
+  (when (git-call-process-display-error "fetch" remote)
+    (message "Fetched from remote: %s" remote)))
+
+(defun git-pull (&optional remote)
+  "Pull from REMOTE. Use \\[current-prefix-arg] to interactively set REMOTE."
+  (interactive
+   (list (or (and current-prefix-arg
+		  (git-ask-remote "Pull from remote: "))
+	     "origin")))
+  (let ((not-clean
+	 (ewoc-collect git-status (lambda (info &optional state)
+				    (setq state (git-fileinfo->state info))
+				    (or (memq state '(added
+						      deleted
+						      modified
+						      unmerged)))))))
+    (if not-clean
+	(error "Error: Can't pull while in unclean state (commit all first)."))
+    (unless git-status (error "Not in git-status buffer."))
+    ;; FIXME: could collect some status data for display
+    (when (git-call-process-display-error "pull" remote)
+      (message "Pulled from remote: %s" remote))))
 
 (defun git-help ()
   "Display help for Git mode."

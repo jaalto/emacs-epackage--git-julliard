@@ -16,6 +16,11 @@ Vcs-Password:
 Homepage:
 Wiki:
 Commentary:
+X-Development:
+ Using the official Vcs-Url to retrive *.el file is not necessary the
+ best because it downlads *huge* git source code repository. Alternative
+ would be through Cvs-Browser and link 'raw'
+ http://git.kernel.org/?p=git/git.git;a=blob_plain;f=contrib/emacs/git-blame.el;hb=HEAD
 Description: git interface by Alexandre Julliard
  Interface for the git version control system. Provides easy access to the
  most frequently used git commands. The user interface is as far as

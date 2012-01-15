@@ -41,4 +41,4 @@
 (autoload 'git-status-quit                      "git" "" t)
 (autoload 'git-status                           "git" "" t) ;; Main entry
 (autoload 'git-help                             "git" "" t)
-(provide 'git-julliard-epkg-install)
+(provide 'git-julliard-epackage-install)

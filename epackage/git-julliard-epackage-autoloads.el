@@ -110,4 +110,4 @@
 (autoload 'git-status                           "git" "" t)
 (autoload 'git-update-saved-file                "git" "" nil)
 (autoload 'git-help                             "git" "" t)
-(provide 'git-julliard-epkg-autoloads)
+(provide 'git-julliard-epackage-autoloads)

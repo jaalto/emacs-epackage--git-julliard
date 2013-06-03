@@ -20,7 +20,9 @@ X-Development:
  Using the official Vcs-Url to retrive *.el file is not necessary the
  best because it downlads *huge* git source code repository. Better to
  go through Vcs-Browser and link 'raw'
- http://git.kernel.org/?p=git/git.git;a=blob_plain;f=contrib/emacs/git-blame.el;hb=HEAD
+ .
+ rm git.el
+ wget -O git.el http://git.kernel.org/cgit/git/git.git/plain/contrib/emacs/git-blame.el?id=HEAD
 Description: git interface by Alexandre Julliard (official Git contrib code)
  Interface for the git version control system. Provides easy access to the
  most frequently used git commands. The user interface is as far as

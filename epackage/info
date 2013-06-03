@@ -10,7 +10,7 @@ Upstream-Bugs:
 Vcs-Type: git
 Vcs-Url: git://git.kernel.org/pub/scm/git/git.git
 Vcs-Args:
-Vcs-Browser: http://git.kernel.org/?p=git/git.git;a=tree;f=contrib/emacs;h=dedabc5837913365e8b14c0995fe1c64193a610f;hb=HEAD
+Vcs-Browser: http://git.kernel.org/cgit/git/git.git/tree/contrib/emacs
 Vcs-User:
 Vcs-Password:
 Homepage:
@@ -21,9 +21,8 @@ X-Development:
  best because it downlads *huge* git source code repository. Better to
  go through Vcs-Browser and link 'raw'
  .
- rm git.el git-blame.el
+ rm git.el
 wget -O git.el http://git.kernel.org/cgit/git/git.git/plain/contrib/emacs/git.el?id=HEAD
- wget -O git.el http://git.kernel.org/cgit/git/git.git/plain/contrib/emacs/git-blame.el?id=HEAD
 Description: git interface by Alexandre Julliard (official Git contrib code)
  Interface for the git version control system. Provides easy access to the
  most frequently used git commands. The user interface is as far as

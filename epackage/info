@@ -21,7 +21,8 @@ X-Development:
  best because it downlads *huge* git source code repository. Better to
  go through Vcs-Browser and link 'raw'
  .
- rm git.el
+ rm git.el git-blame.el
+wget -O git.el http://git.kernel.org/cgit/git/git.git/plain/contrib/emacs/git.el?id=HEAD
  wget -O git.el http://git.kernel.org/cgit/git/git.git/plain/contrib/emacs/git-blame.el?id=HEAD
 Description: git interface by Alexandre Julliard (official Git contrib code)
  Interface for the git version control system. Provides easy access to the
